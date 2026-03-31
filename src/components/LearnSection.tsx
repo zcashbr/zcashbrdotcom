@@ -18,16 +18,25 @@ export default function LearnSection({ articles }: { articles: Article[] }) {
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [visibleCount, setVisibleCount] = useState(ARTICLES_PER_PAGE);
 
+  // Reseta a paginação sempre que o filtro ou a busca mudarem
   useEffect(() => {
     setVisibleCount(ARTICLES_PER_PAGE);
   }, [activeFilter, searchQuery]);
 
   const filteredArticles = useMemo(() => {
-    return articles.filter(article => {
-      const matchesCategory = activeFilter === 'Todos' || article.categories.includes(activeFilter);
+    // Garantimos que articles seja um array para evitar erros de map/filter
+    return (articles || []).filter(article => {
+      // 1. Filtro de Categoria com Null Safety
+      const categories = article.categories || [];
+      const matchesCategory = activeFilter === 'Todos' || categories.includes(activeFilter);
+      
+      // 2. Filtro de Busca com Null Safety (evita quebra se title ou snippet forem nulos)
+      const title = article.title?.toLowerCase() || '';
+      const snippet = article.contentSnippet?.toLowerCase() || '';
+
       const matchesSearch = 
-        article.title.toLowerCase().includes(searchQuery) || 
-        article.contentSnippet.toLowerCase().includes(searchQuery);
+        title.includes(searchQuery) || 
+        snippet.includes(searchQuery);
 
       return matchesCategory && matchesSearch;
     });
@@ -44,7 +53,6 @@ export default function LearnSection({ articles }: { articles: Article[] }) {
         onFilterChange={setActiveFilter} 
       />
       
-      {/* Container principal da grade e do botão */}
       <div className="w-full flex flex-col">
         {/* Grade de Artigos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
@@ -59,6 +67,7 @@ export default function LearnSection({ articles }: { articles: Article[] }) {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ 
                     duration: 0.3,
+                    // Delay apenas para os novos itens que entram na página atual
                     delay: (index % ARTICLES_PER_PAGE) * 0.05 
                   }}
                 >
@@ -78,7 +87,7 @@ export default function LearnSection({ articles }: { articles: Article[] }) {
           </AnimatePresence>
         </div>
 
-        {/* Botão Load More - Aparece apenas se hasMore for true */}
+        {/* Botão Load More */}
         <AnimatePresence>
           {hasMore && (
             <motion.div 
